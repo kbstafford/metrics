@@ -1,46 +1,34 @@
+import h5py
 import numpy as np
-import glob, os, re
+from pathlib import Path
+import matplotlib.pyplot as plt
 
-# import data
-PATH = r"..\datasets"
-BIN_S = 0.050 # 50 ms bins
-SCALE = 1e-6
-DTYPE = "<i8"
+GT_PATH  = Path(r"C:\Users\kayla\Documents\ccf_datascience\metrics\manifold\ibl_ground_truth.h5")
+SUB_PATH = Path(r"C:\Users\kayla\Documents\ccf_datascience\metrics\manifold\ibl_submission.h5")
 
-# sort files
-def natural_key(s):
-    return [int(t) if t.isdigit() else t.lower()
-            for t in re.split(r'(\d+)', s)]
+# choose which HDF5 to read
+with h5py.File(GT_PATH, "r") as f:
+    # take the first trial; change to loop/concat if you want all trials
+    trial_key = sorted(f.keys())[0]
+    M = f[trial_key]["signals"][:]             # shape: (T, 1 + 2*N)
+    t = M[:, 0]                                # bin centers (seconds)
+    counts_mat = M[:, 1::2]                    # spike counts columns (T, N)
+    N = counts_mat.shape[1]
 
-# load spike times from all .spk files
-spk_files = sorted(glob.glob(os.path.join(PATH, "*.spk")), key=natural_key)
-assert spk_files, f"No .tem files found in {PATH}"
+# bin edges that match these centers
+dt = float(np.median(np.diff(t)))
+edges = np.arange(t[0] - 0.5*dt, t[-1] + 0.5*dt + 1e-12, dt)
 
-spike_trains = []
-unit_names = []
-for f in spk_files:
-    ts_int = np.fromfile(f, dtype=DTYPE)          # raw int64 timestamps
-    ts_sec = ts_int.astype(np.float64) * SCALE    # convert to seconds
-    if ts_sec.size > 0:
-        spike_trains.append(np.sort(ts_sec))      # ensure sorted
-        unit_names.append(os.path.basename(f))
-
-# determine analysis window from spikes
-t0 = min(st[0] for st in spike_trains if st.size)
-t1 = max(st[-1] for st in spike_trains if st.size)
-edges = np.arange(t0, t1 + BIN_S, BIN_S)
+# reconstruct spike times per unit from counts (uses bin centers)
+# NOTE: this can be large if counts are big; OK for short windows.
+spike_trains = [np.repeat(t, counts_mat[:, i].astype(int)) for i in range(N)]
+unit_names   = [f"neuron{i+1}" for i in range(N)]
 
 # build spike-count matrix [time_bins * neurons]
 spc_matrix = np.zeros((edges.size - 1, len(spike_trains)), dtype=float)
 for i, st in enumerate(spike_trains):
     counts, _ = np.histogram(st, bins=edges)
     spc_matrix[:, i] = counts
-
-# optional: drop silent units
-keep = np.where(spc_matrix.sum(axis=0) > 0)[0]
-spc_matrix = spc_matrix[:, keep]
-unit_names = [unit_names[i] for i in keep]
-print(f"Time bins: {spc_matrix.shape[0]}, Units: {spc_matrix.shape[1]}")
 
 # covariance calculation
 spc_matrix_c = spc_matrix - spc_matrix.mean(axis=0, keepdims=True)
@@ -52,4 +40,39 @@ tr, tr2 = np.trace(cov_matrix), np.trace(cov_matrix @ cov_matrix)
 pr = (tr * tr) / tr2 if tr2 > 0 else np.nan
 
 # display participation ratio
-print(pr)
+print("Participation ratio:", pr)
+
+
+# PCA via SVD on centered spike-count matrix
+U_t, s_vals, Vt = np.linalg.svd(spc_matrix_c, full_matrices=False)
+V = Vt.T  # (neurons, neurons) – eigenvectors in neuron space
+
+# take top 3 PCs
+k = 3
+PCs = V[:, :k]                 # (neurons, 3)
+proj = spc_matrix_c @ PCs      # (time_bins, 3)
+
+# Optionally subsample time for clarity
+step = 5   # plot every 5th time bin
+proj_sub = proj[::step]
+t_sub = t[::step]
+
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+
+# 3D trajectory over time
+ax.plot(proj_sub[:, 0],
+        proj_sub[:, 1],
+        proj_sub[:, 2],
+        lw=1.0)
+
+p = ax.scatter(proj_sub[:, 0], proj_sub[:, 1], proj_sub[:, 2],
+                c=t_sub, cmap='viridis', s=4)
+fig.colorbar(p, ax=ax, label='Time (s)')
+
+ax.set_xlabel("PC1")
+ax.set_ylabel("PC2")
+ax.set_zlabel("PC3")
+ax.set_title("Neural manifold (top 3 PCs) – GT")
+plt.tight_layout()
+plt.show()
