@@ -2,8 +2,8 @@ import numpy as np
 import h5py
 from pathlib import Path
 
-GT_PATH  = Path(r"C:\Users\kayla\Documents\ccf_datascience\metrics\manifold\ibl_ground_truth.h5")
-SUB_PATH = Path(r"C:\Users\kayla\Documents\ccf_datascience\metrics\manifold\ibl_submission.h5")
+GT_PATH  = Path(r"/metrics/datasets/ibl_ground_truth.h5")
+SUB_PATH = Path(r"/metrics/datasets/ibl_submission.h5")
 
 
 def load_spike_counts(h5_path):

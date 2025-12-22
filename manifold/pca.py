@@ -1,4 +1,3 @@
-# manifold/pca_visual.py
 from pathlib import Path
 import argparse
 import numpy as np

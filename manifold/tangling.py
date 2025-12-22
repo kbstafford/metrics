@@ -2,13 +2,9 @@ import numpy as np
 import h5py
 from pathlib import Path
 import matplotlib.pyplot as plt
-from sklearn.decomposition import PCA
-from sklearn.neighbors import NearestNeighbors
-from sklearn.utils import check_random_state
-from scipy.ndimage import gaussian_filter1d
 
 # ---------- Load your HDF5 ----------
-GT_PATH  = Path(r"C:\Users\kayla\Documents\ccf_datascience\metrics\manifold\ibl_ground_truth.h5")
+GT_PATH  = Path(r"/metrics/datasets/ibl_ground_truth.h5")
 
 with h5py.File(GT_PATH, "r") as f:
     trial_key  = sorted(f.keys())[0]
@@ -17,8 +13,7 @@ with h5py.File(GT_PATH, "r") as f:
     counts_mat = M[:, 1::2].astype(np.float32)  # spike counts (T, N)
 
 
-GT_PATH  = Path(r"C:\Users\kayla\Documents\ccf_datascience\metrics\manifold\ibl_ground_truth.h5")
-SUB_PATH = Path(r"C:\Users\kayla\Documents\ccf_datascience\metrics\manifold\ibl_submission.h5")
+SUB_PATH = Path(r"/metrics/datasets/ibl_submission.h5")
 
 
 def load_spike_counts_and_time(h5_path):

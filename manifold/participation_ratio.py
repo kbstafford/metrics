@@ -3,8 +3,8 @@ import numpy as np
 from pathlib import Path
 import matplotlib.pyplot as plt
 
-GT_PATH  = Path(r"C:\Users\kayla\Documents\ccf_datascience\metrics\manifold\ibl_ground_truth.h5")
-SUB_PATH = Path(r"C:\Users\kayla\Documents\ccf_datascience\metrics\manifold\ibl_submission.h5")
+GT_PATH  = Path(r"/metrics/datasets/ibl_ground_truth.h5")
+SUB_PATH = Path(r"/metrics/datasets/ibl_submission.h5")
 
 # choose which HDF5 to read
 with h5py.File(GT_PATH, "r") as f:
