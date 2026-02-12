@@ -1,18 +1,13 @@
 import numpy as np
 import h5py
 from pathlib import Path
+import matplotlib.pyplot as plt
 
 GT_PATH  = Path(r"/metrics/datasets/ibl_ground_truth.h5")
 SUB_PATH = Path(r"/metrics/datasets/ibl_submission.h5")
 
 
 def load_spike_counts(h5_path):
-    """
-    Load spike-count matrix (time_bins x neurons) from the first trial
-    in the given HDF5 file. Assumes dataset 'signals' with pattern:
-      col 0 = time
-      cols 1,3,5,... = spike counts
-    """
     with h5py.File(h5_path, "r") as f:
         trial_key = sorted(f.keys())[0]          # e.g. 'trial_0000'
         M = f[trial_key]["signals"][:]           # (T, 1 + 2*N)
@@ -79,12 +74,6 @@ if __name__ == "__main__":
     print("First principal angle (deg):", theta_deg[0])
 
 
-import matplotlib.pyplot as plt
-import numpy as np
-
-# assuming you already have:
-# theta, s = pca_subspace_angles(U_GT, U_SUB)
-
 idx = np.arange(1, len(theta) + 1)  # 1..k
 theta_deg = np.degrees(theta)
 
@@ -107,9 +96,9 @@ plt.ylim(0, 1.05)
 plt.tight_layout()
 plt.show()
 
-# take first 2 PCs from each basis
-U1 = U_GT[:, :2]   # (neurons, 2)
-U2 = U_SUB[:, :2]  # (neurons, 2)
+# take first 3 PCs from each basis
+U1 = U_GT[:, :3]   # (neurons, 2)
+U2 = U_SUB[:, :3]  # (neurons, 2)
 
 plt.figure()
 plt.scatter(U1[:, 0], U1[:, 1], alpha=0.5, label="GT PCs (loadings)")
@@ -122,10 +111,6 @@ plt.grid(True)
 plt.tight_layout()
 plt.show()
 
-
-from mpl_toolkits.mplot3d import Axes3D  # just importing enables 3D
-
-# --- project GT and SUB data into their own top-3 PC spaces ---
 
 # center in time
 X_GT  = spc_GT  - spc_GT.mean(axis=0, keepdims=True)   # (T, N)

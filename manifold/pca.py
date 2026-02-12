@@ -6,15 +6,45 @@ import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 from scipy.ndimage import gaussian_filter1d
 
-def load_counts_from_h5(h5_path: Path, trial_index: int = 0):
+
+def load_counts_from_h5(h5_path: Path, trial_index: int = 0, load_all_trials: bool = False):
     with h5py.File(h5_path, "r") as f:
         trials = sorted(f.keys())
         if not trials:
             raise RuntimeError("No trials in HDF5.")
-        key = trials[trial_index]
-        M = f[key]["signals"][:]             # (T, 1 + 2N)
-    t = M[:, 0].astype(float)
-    S = M[:, 1::2].astype(float)            # spike counts (T, N)
+
+        if load_all_trials:
+            print(f"Loading all {len(trials)} trials...")
+            all_t = []
+            all_S = []
+
+            for i, key in enumerate(trials):
+                M = f[key]["data"][:]
+                t = M[:, 0].astype(float)
+                S = M[:, 1:].astype(float)
+
+                # Offset time for each trial so they don't overlap
+                if i > 0:
+                    t = t + all_t[-1][-1] + (t[1] - t[0])
+
+                all_t.append(t)
+                all_S.append(S)
+
+            t = np.concatenate(all_t)
+            S = np.concatenate(all_S, axis=0)
+            print(f"Combined: {len(trials)} trials, {len(t)} time points, {S.shape[1]} channels")
+        else:
+            key = trials[trial_index]
+            print(f"Loading trial: {key}")
+
+            M = f[key]["data"][:]
+            print(f"Data shape: {M.shape}")
+
+            t = M[:, 0].astype(float)
+            S = M[:, 1:].astype(float)
+
+            print(f"Time points: {len(t)}, Neurons/channels: {S.shape[1]}")
+
     return t, S
 
 def rebin_time_series(X: np.ndarray, factor: int) -> np.ndarray:
@@ -24,7 +54,7 @@ def rebin_time_series(X: np.ndarray, factor: int) -> np.ndarray:
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--gt", default=str(Path(__file__).resolve().parent / "ibl_ground_truth.h5"))
+    ap.add_argument("--gt", default=str(Path(__file__).resolve().parent.parent / "datasets" / "InDomainXOR_balanced_400trials_100ms.hdf5"))
     ap.add_argument("--trial", type=int, default=0)
     ap.add_argument("--target-bin", type=float, default=0.050, help="seconds; 0 keeps original")
     ap.add_argument("--smooth-sigma", type=float, default=5.0, help="gaussian sigma (bins) on rates")

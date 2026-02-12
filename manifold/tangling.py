@@ -4,7 +4,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 
 # ---------- Load your HDF5 ----------
-GT_PATH  = Path(r"/metrics/datasets/ibl_ground_truth.h5")
+GT_PATH  = Path(r"/metrics/datasets/InDomainXOR_balanced_400trials_100ms.hdf5")
 
 with h5py.File(GT_PATH, "r") as f:
     trial_key  = sorted(f.keys())[0]
@@ -13,7 +13,7 @@ with h5py.File(GT_PATH, "r") as f:
     counts_mat = M[:, 1::2].astype(np.float32)  # spike counts (T, N)
 
 
-SUB_PATH = Path(r"/metrics/datasets/ibl_submission.h5")
+SUB_PATH = Path(r"/metrics/datasets/InDomainXOR_SUB_balanced_400trials_100ms.hdf5")
 
 
 def load_spike_counts_and_time(h5_path):
