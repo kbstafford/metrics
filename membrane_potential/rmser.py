@@ -1,0 +1,1 @@
+# Root Mean Square Error Ratio -- takes the ratio between RMSEnm (sub vs ground truth) and RMSEnn (sub vs itself)
